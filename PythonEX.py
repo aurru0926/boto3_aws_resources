@@ -48,3 +48,69 @@ def create_bucket_policy(bucket_name):
         return False
     return True
     
+    def create_ec2_instance():
+    try:
+        ec2 = boto3.resource('ec2')
+        instance = ec2.create_instances(
+            ImageId='ami-0b898040803850657',
+            MinCount=1,
+            MaxCount=1,
+            InstanceType='t2.micro',
+            KeyName='my-key-pair'
+        )
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+ # Create IAM role
+def create_iam_role(role_name):
+    try:
+        iam = boto3.client('iam')
+        role = iam.create_role(
+            RoleName=role_name,
+            AssumeRolePolicyDocument=json.dumps(
+                {'Statement': [{'Action': 'sts:AssumeRole',
+                                'Effect': 'Allow',
+                                'Principal': {'Service': 'ec2.amazonaws.com'}}],
+                 'Version': '2012-10-17'})
+        )
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+# Attach policy with read and write permissions to the IAM role
+def attach_policy(role_name):
+    try:
+        iam = boto3.client('iam')
+        iam.attach_role_policy(
+            RoleName=role_name,
+            PolicyArn='arn:aws:iam::aws:policy/AmazonS3FullAccess'
+        )
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+    # Create IAM role and update Lambda function with the role
+def create_iam_role_lambda(role_name, function_name):
+    try:
+        iam = boto3.client('iam')
+        role = iam.create_role(
+            RoleName=role_name,
+            AssumeRolePolicyDocument=json.dumps(
+                {'Statement': [{'Action': 'sts:AssumeRole',
+                                'Effect': 'Allow',
+                                'Principal': {'Service': 'lambda.amazonaws.com'}}],
+                 'Version': '2012-10-17'})
+        )
+        lambda_client = boto3.client('lambda')
+        lambda_client.update_function_configuration(
+            FunctionName=function_name,
+            Role=role['Role']['Arn']
+        )
+    except Exception as e:
+        print(e)
+        return False
+    return True
