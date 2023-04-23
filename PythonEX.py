@@ -49,19 +49,19 @@ def create_bucket_policy(bucket_name):
     return True
     
     def create_ec2_instance():
-    try:
-        ec2 = boto3.resource('ec2')
-        instance = ec2.create_instances(
-            ImageId='ami-0b898040803850657',
-            MinCount=1,
-            MaxCount=1,
-            InstanceType='t2.micro',
-            KeyName='my-key-pair'
-        )
-    except Exception as e:
-        print(e)
-        return False
-    return True
+        try:
+            ec2 = boto3.resource('ec2')
+            instance = ec2.create_instances(
+                ImageId='ami-0b898040803850657',
+                MinCount=1,
+                MaxCount=1,
+                InstanceType='t2.micro',
+                KeyName='my-key-pair'
+            )
+        except Exception as e:
+            print(e)
+            return False
+        return True
 
  # Create IAM role
 def create_iam_role(role_name):
