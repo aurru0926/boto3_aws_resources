@@ -1,23 +1,18 @@
-# Python script that autheticates with AWS via the sts client with boto3
-# and then uses the credentials to list the buckets in the account
+## This is Python script that autheticates with AWS through the sts client with boto3
+## and then uses the credentials to list the buckets in the account.
 
 import boto3
 import json
 
-# Create the sts client. Credentials will be pulled from enviroment variables or AWS credentials.
 sts_client = boto3.client('sts')
 
-# Call the assume_role method of the STSConnection object and pass the role
-# ARN and a role session name.
 assumedRoleObject = sts_client.assume_role(
     RoleArn="arn:aws:iam::123456789012:role/role-name",
     RoleSessionName="AssumeRoleSession1" )
 
-# From the response that contains the assumed role, get the temporary
-# credentials that can be used to make subsequent API calls
 credentials = assumedRoleObject['Credentials']
 
-# Function that creates a S3 bucket
+## This Function creates a S3 bucket
 def create_bucket(bucket_name, region=None):
     try:
         s3_client = boto3.client('s3')
@@ -27,7 +22,7 @@ def create_bucket(bucket_name, region=None):
         return False
     return True 
 
-    # Function that creates and applies S3 bucket policy with upload and download permissions
+    ## This function creates and applies S3 bucket policy.
 def create_bucket_policy(bucket_name):
     try:
         s3_client = boto3.client('s3')
@@ -36,8 +31,8 @@ def create_bucket_policy(bucket_name):
             'Statement': [{
                 'Sid': 'AddPerm',
                 'Effect': 'Allow',
-                'Principal': '*',
-                'Action': ['s3:GetObject'],
+                'Principal': {'Service': 'lambda.amazonaws.com'},
+                'Action': ['s3:GetObject','s3:PutObject'],
                 'Resource': "arn:aws:s3:::%s/*" % bucket_name
             }]
         }
@@ -48,22 +43,23 @@ def create_bucket_policy(bucket_name):
         return False
     return True
     
-    def create_ec2_instance():
-        try:
-            ec2 = boto3.resource('ec2')
-            instance = ec2.create_instances(
-                ImageId='ami-0b898040803850657',
-                MinCount=1,
-                MaxCount=1,
-                InstanceType='t2.micro',
-                KeyName='my-key-pair'
-            )
-        except Exception as e:
-            print(e)
-            return False
-        return True
+    ## This creates an EC2 instance.
+   def create_ec2_instance():
+    try:
+        ec2 = boto3.resource('ec2')
+        instance = ec2.create_instances(
+            ImageId='ami-0b898040803850657',
+            MinCount=1,
+            MaxCount=4,
+            InstanceType='t2.micro',
+            KeyName='my-key-pair'
+        )
+    except Exception as e:
+        print(e)
+        return False
+    return True
 
- # Create IAM role
+    ## This creates an IAM role and is attached to the EC2 instance.
 def create_iam_role(role_name):
     try:
         iam = boto3.client('iam')
@@ -80,7 +76,6 @@ def create_iam_role(role_name):
         return False
     return True
 
-# Attach policy with read and write permissions to the IAM role
 def attach_policy(role_name):
     try:
         iam = boto3.client('iam')
@@ -93,7 +88,7 @@ def attach_policy(role_name):
         return False
     return True
 
-    # Create IAM role and update Lambda function with the role
+   ## This creates a lambda function with its respective IAM role.
 def create_iam_role_lambda(role_name, function_name):
     try:
         iam = boto3.client('iam')
@@ -109,6 +104,22 @@ def create_iam_role_lambda(role_name, function_name):
         lambda_client.update_function_configuration(
             FunctionName=function_name,
             Role=role['Role']['Arn']
+        )
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+## Here we create a function to invoke lambda.
+def create_policy_for_lambda(function_name):
+    try:
+        lambda_client = boto3.client('lambda')
+        lambda_client.add_permission(
+            FunctionName=function_name,
+            StatementId='lambda',
+            Action='lambda:InvokeFunction',
+            Principal='s3.amazonaws.com',
+            SourceArn='arn:aws:s3:::my-bucket'
         )
     except Exception as e:
         print(e)
